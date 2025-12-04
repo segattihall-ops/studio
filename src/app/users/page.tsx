@@ -37,7 +37,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useState } from 'react';
 import { FirebaseClientProvider, useAuth } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { toast } from '@/hooks/use-toast';
 
@@ -47,57 +47,56 @@ const subscriptionVariantMap: { [key: string]: 'default' | 'secondary' | 'outlin
   'Free': 'outline',
 };
 
-const addUserSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
+const addTherapistSchema = z.object({
+  fullName: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-type AddUserForm = z.infer<typeof addUserSchema>;
+type AddTherapistForm = z.infer<typeof addTherapistSchema>;
 
 function AddUserSheet({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   const auth = useAuth();
   const firestore = useFirestore();
-  const form = useForm<AddUserForm>({
-    resolver: zodResolver(addUserSchema),
+  const form = useForm<AddTherapistForm>({
+    resolver: zodResolver(addTherapistSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
+      fullName: '',
       email: '',
       password: '',
     },
   });
 
-  const onSubmit = async (data: AddUserForm) => {
+  const onSubmit = async (data: AddTherapistForm) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
-      const userProfile = {
-        id: user.uid,
-        firstName: data.firstName,
-        lastName: data.lastName,
+      const therapistProfile = {
+        user_id: user.uid,
+        full_name: data.fullName,
         email: data.email,
-        phone: '',
-        dateOfBirth: '',
-        address: '',
+        status: 'Pending',
+        plan: 'Free',
+        plan_name: 'Free Tier',
+        subscription_status: 'Active',
+        updated_at: serverTimestamp(),
       };
       
-      await setDoc(doc(firestore, 'users', user.uid), userProfile);
+      await setDoc(doc(firestore, 'therapists', user.uid), therapistProfile);
 
       toast({
-        title: 'User Created',
-        description: `${data.firstName} ${data.lastName} has been added.`,
+        title: 'Therapist Created',
+        description: `${data.fullName} has been added as a new therapist.`,
       });
       onOpenChange(false);
       form.reset();
     } catch (error: any) {
-      console.error("Error creating user:", error);
+      console.error("Error creating therapist:", error);
       toast({
         variant: "destructive",
         title: "Uh oh! Something went wrong.",
-        description: error.message || "Could not create user.",
+        description: error.message || "Could not create therapist.",
       });
     }
   };
@@ -106,33 +105,20 @@ function AddUserSheet({ open, onOpenChange }: { open: boolean, onOpenChange: (op
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Add New User</SheetTitle>
-          <SheetDescription>Fill in the details to add a new user to the directory.</SheetDescription>
+          <SheetTitle>Add New Therapist</SheetTitle>
+          <SheetDescription>Fill in the details to add a new therapist to the directory.</SheetDescription>
         </SheetHeader>
         <div className="p-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="firstName"
+                name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel>Full Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="John" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Doe" {...field} />
+                      <Input placeholder="John Doe" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -166,7 +152,7 @@ function AddUserSheet({ open, onOpenChange }: { open: boolean, onOpenChange: (op
               />
                <SheetFooter className="pt-4">
                 <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? 'Adding...' : 'Add User'}
+                    {form.formState.isSubmitting ? 'Adding...' : 'Add Therapist'}
                 </Button>
                 <SheetClose asChild>
                   <Button variant="outline">Cancel</Button>

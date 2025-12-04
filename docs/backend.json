@@ -122,6 +122,54 @@
         "price",
         "description"
       ]
+    },
+    "Therapist": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Therapist",
+      "type": "object",
+      "description": "Represents a therapist in the directory.",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "Unique identifier for the therapist, linked to their auth UID."
+        },
+        "full_name": {
+          "type": "string",
+          "description": "The full name of the therapist."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the therapist.",
+          "format": "email"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the therapist's profile (e.g., Pending, Active, Inactive)."
+        },
+        "plan": {
+          "type": "string",
+          "description": "The ID of the subscription plan."
+        },
+        "plan_name": {
+          "type": "string",
+          "description": "The name of the subscription plan."
+        },
+        "subscription_status": {
+          "type": "string",
+          "description": "The status of the therapist's subscription (e.g., Active, Canceled)."
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "Timestamp of the last profile update.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "user_id",
+        "full_name",
+        "email",
+        "status"
+      ]
     }
   },
   "auth": {
@@ -183,8 +231,24 @@
             }
           ]
         }
+      },
+       {
+        "path": "/therapists/{therapistId}",
+        "definition": {
+          "entityName": "Therapist",
+          "schema": {
+            "$ref": "#/backend/entities/Therapist"
+          },
+          "description": "Stores therapist profiles.",
+          "params": [
+            {
+              "name": "therapistId",
+              "description": "The unique identifier of the therapist."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support a massage directory with user subscriptions. It prioritizes authorization independence by structuring data to avoid hierarchical `get()` calls in security rules. This is achieved by storing user-related data under their respective user IDs, enabling simple, path-based security rules.\n\nThe `/users/{userId}` collection stores user profiles.  Subscriptions are stored in a subcollection `/users/{userId}/subscriptions/{subscriptionId}` to represent the `User 1:N Subscription` relationship. Plans are stored in a top-level `/plans/{planId}` collection.\n\nAuthorization Independence: The structure places user-owned data under `/users/{userId}`, allowing rules to directly verify `request.auth.uid == userId` without needing to fetch parent document data.  Since subscriptions are nested under the user, the rules can also ensure that only the user can manage their own subscriptions.\n\nQAPs (Rules are not Filters):  The segregation of user data into individual user-scoped collections allows for secure `list` operations.  For example, administrators can `list` all users in the `/users` collection, and users can securely `list` their subscriptions from `/users/{userId}/subscriptions`.  No complex filtering is required in the rules.\n\nThis design promotes clear, maintainable security rules and supports atomic operations, enhancing data integrity and application scalability."
+    "reasoning": "The Firestore data structure is designed to support a massage directory with user subscriptions. It prioritizes authorization independence by structuring data to avoid hierarchical `get()` calls in security rules. This is achieved by storing user-related data under their respective user IDs, enabling simple, path-based security rules.\n\nThe `/users/{userId}` collection stores user profiles.  Subscriptions are stored in a subcollection `/users/{userId}/subscriptions/{subscriptionId}` to represent the `User 1:N Subscription` relationship. Plans are stored in a top-level `/plans/{planId}` collection. The `/therapists/{therapistId}` collection stores public profiles for therapists, which can be listed by all users.\n\nAuthorization Independence: The structure places user-owned data under `/users/{userId}`, allowing rules to directly verify `request.auth.uid == userId` without needing to fetch parent document data.  Since subscriptions are nested under the user, the rules can also ensure that only the user can manage their own subscriptions.\n\nQAPs (Rules are not Filters):  The segregation of user data into individual user-scoped collections allows for secure `list` operations.  For example, administrators can `list` all users in the `/users` collection, and users can securely `list` their subscriptions from `/users/{userId}/subscriptions`.  No complex filtering is required in the rules.\n\nThis design promotes clear, maintainable security rules and supports atomic operations, enhancing data integrity and application scalability."
   }
 }
