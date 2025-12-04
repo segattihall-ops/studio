@@ -112,7 +112,7 @@ service cloud.firestore {
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false; // Deny listing all users for privacy
+      allow list: if isSignedIn(); // Allow authenticated (admin) users to list for the dashboard.
       allow create: if isOwner(userId) && isValidUserCreate(userId, request.resource.data);
       allow update: if isExistingOwner(userId) && isImmutableUserId(request.resource.data, resource.data);
       allow delete: if isExistingOwner(userId);
