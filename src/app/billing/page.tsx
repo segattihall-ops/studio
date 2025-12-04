@@ -19,13 +19,6 @@ const subscriptionsData = [
   { date: '04/24', count: 270 }, { date: '05/24', count: 300 }, { date: '06/24', count: 320 }
 ];
 
-const logsData = [
-  { id: 'evt_1', type: 'charge.succeeded', amount: '$59.00', date: '2024-07-21 14:30' },
-  { id: 'evt_2', type: 'customer.subscription.created', details: 'user_123', date: '2024-07-21 14:29' },
-  { id: 'evt_3', type: 'charge.failed', amount: '$59.00', reason: 'Insufficient funds', date: '2024-07-20 10:05' },
-  { id: 'evt_4', type: 'payout.paid', amount: '$2,345.67', date: '2024-07-20 09:00' },
-];
-
 const BillingPage = () => {
   return (
     <>
@@ -99,28 +92,7 @@ const BillingPage = () => {
                     <CardDescription>Monitore todos os eventos de webhook do Stripe.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Tipo de Evento</TableHead>
-                                <TableHead>Detalhes</TableHead>
-                                <TableHead>Data</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {logsData.map(log => (
-                                <TableRow key={log.id}>
-                                    <TableCell>
-                                        <Badge variant={log.type.includes('fail') ? 'destructive' : 'secondary'}>{log.type}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="font-mono text-xs">{log.amount || log.details || log.reason}</span>
-                                    </TableCell>
-                                    <TableCell>{log.date}</TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                   <p className="text-center text-muted-foreground py-10">Os logs de eventos do Stripe aparecerão aqui após a configuração.</p>
                 </CardContent>
             </Card>
         </TabsContent>
