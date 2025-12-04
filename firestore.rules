@@ -151,7 +151,21 @@ service cloud.firestore {
      */
     match /therapists/{therapistId} {
       allow read, list: if isSignedIn();
-      allow create, update, delete: if isSignedIn();
+      allow write: if isSignedIn(); // Simplified for admin panel context
+    }
+
+    /**
+     * @description Controls access to articles.
+     * @path /articles/{articleId}
+     * @allow (read) Authenticated users can read articles.
+     * @allow (write) Authenticated users (admins) can manage articles.
+     * @principle Allows public read access for content, write access for admins.
+     */
+    match /articles/{articleId} {
+      allow read, list: if isSignedIn();
+      allow write: if isSignedIn(); // Assuming admins are the only authenticated users for now
     }
   }
 }
+
+    

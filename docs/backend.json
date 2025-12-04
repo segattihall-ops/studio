@@ -250,6 +250,24 @@
         "stripe_secret_key": { "type": "string", "description": "The secret API key for Stripe (stored securely)." }
       },
       "required": ["id"]
+    },
+    "Article": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Article",
+      "type": "object",
+      "description": "Represents a blog post or article.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the article." },
+        "title": { "type": "string", "description": "The title of the article." },
+        "content": { "type": "string", "description": "The main body content of the article." },
+        "author_id": { "type": "string", "description": "The ID of the user who wrote the article." },
+        "author_name": { "type": "string", "description": "The name of the author." },
+        "status": { "type": "string", "enum": ["draft", "review", "published"], "description": "The current status of the article." },
+        "published_at": { "type": "string", "format": "date-time", "description": "Timestamp of when the article was published." },
+        "created_at": { "type": "string", "format": "date-time", "description": "Timestamp of when the article was created." },
+        "updated_at": { "type": "string", "format": "date-time", "description": "Timestamp of the last update." }
+      },
+      "required": ["id", "title", "author_id", "status", "created_at", "updated_at"]
     }
   },
   "auth": {
@@ -343,7 +361,7 @@
           "entityName": "BillingEventLog",
           "schema": { "$ref": "#/backend/entities/BillingEventLog" },
           "description": "Logs all incoming webhook events from the billing provider. Restricted to admin or server-side access.",
-          "params": [{ "name": "logId", "description": "The unique identifier of the log entry." }]
+          "params": [{ "name": "logId", "description": "The unique identifier of a log entry." }]
         }
       },
       {
@@ -354,9 +372,18 @@
           "description": "Stores global, non-user-specific settings. Access should be highly restricted.",
           "params": [{ "name": "settingId", "description": "The unique name of the setting document (e.g., 'billing')." }]
         }
+      },
+      {
+        "path": "/articles/{articleId}",
+        "definition": {
+          "entityName": "Article",
+          "schema": { "$ref": "#/backend/entities/Article" },
+          "description": "Stores articles and blog posts. Accessible by admins for content management.",
+          "params": [{ "name": "articleId", "description": "The unique identifier of the article." }]
+        }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support a massage directory with user subscriptions. It prioritizes authorization independence by structuring data to avoid hierarchical `get()` calls in security rules. This is achieved by storing user-related data under their respective user IDs, enabling simple, path-based security rules.\n\nThe `/users/{userId}` collection stores user profiles.  Subscriptions are stored in a subcollection `/users/{userId}/subscriptions/{subscriptionId}` to represent the `User 1:N Subscription` relationship. Plans are stored in a top-level `/plans/{planId}` collection. The `/therapists/{therapistId}` collection stores public profiles for therapists, which can be listed by all users. New top-level collections for `/payments`, `/billing_event_logs`, and `/settings` have been added to support a robust billing integration, keeping sensitive financial data and configurations separate and secure.\n\nAuthorization Independence: The structure places user-owned data under `/users/{userId}`, allowing rules to directly verify `request.auth.uid == userId` without needing to fetch parent document data.  Since subscriptions are nested under the user, the rules can also ensure that only the user can manage their own subscriptions.\n\nQAPs (Rules are not Filters):  The segregation of user data into individual user-scoped collections allows for secure `list` operations.  For example, administrators can `list` all users in the `/users` collection, and users can securely `list` their subscriptions from `/users/{userId}/subscriptions`.  No complex filtering is required in the rules.\n\nThis design promotes clear, maintainable security rules and supports atomic operations, enhancing data integrity and application scalability."
+    "reasoning": "The Firestore data structure is designed to support a massage directory with user subscriptions. It prioritizes authorization independence by structuring data to avoid hierarchical `get()` calls in security rules. This is achieved by storing user-related data under their respective user IDs, enabling simple, path-based security rules.\n\nThe `/users/{userId}` collection stores user profiles.  Subscriptions are stored in a subcollection `/users/{userId}/subscriptions/{subscriptionId}` to represent the `User 1:N Subscription` relationship. Plans are stored in a top-level `/plans/{planId}` collection. The `/therapists/{therapistId}` collection stores public profiles for therapists, which can be listed by all users. New top-level collections for `/payments`, `/billing_event_logs`, `/settings`, and `/articles` have been added to support a robust billing and content management integration, keeping sensitive financial data, configurations, and content separate and secure.\n\nAuthorization Independence: The structure places user-owned data under `/users/{userId}`, allowing rules to directly verify `request.auth.uid == userId` without needing to fetch parent document data.  Since subscriptions are nested under the user, the rules can also ensure that only the user can manage their own subscriptions.\n\nQAPs (Rules are not Filters):  The segregation of user data into individual user-scoped collections allows for secure `list` operations.  For example, administrators can `list` all users in the `/users` collection, and users can securely `list` their subscriptions from `/users/{userId}/subscriptions`.  No complex filtering is required in the rules.\n\nThis design promotes clear, maintainable security rules and supports atomic operations, enhancing data integrity and application scalability."
   }
 }
     

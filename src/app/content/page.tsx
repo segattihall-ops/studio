@@ -16,19 +16,37 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, PlusCircle, Image as ImageIcon, FileText as ArticleIcon } from 'lucide-react';
-import { articlesData } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
-import {PlaceHolderImages} from '@/lib/placeholder-images';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { FirebaseClientProvider, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+
+type Article = {
+  id: string;
+  title: string;
+  author_name: string;
+  published_at?: { toDate: () => Date };
+  status: string;
+}
 
 const statusVariantMap: { [key: string]: 'default' | 'secondary' | 'outline' | 'destructive' } = {
-  'Published': 'default',
-  'Draft': 'secondary',
-  'Review': 'outline',
+  'published': 'default',
+  'draft': 'secondary',
+  'review': 'outline',
 };
 
-const ContentPage = () => {
+function ContentPageBody() {
+  const firestore = useFirestore();
+  const articlesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'articles') : null, [firestore]);
+  const { data: articlesData, isLoading } = useCollection<Article>(articlesQuery);
+
+  const formatDate = (date: { toDate: () => Date } | undefined) => {
+    if (!date) return 'N/A';
+    return date.toDate().toLocaleDateString();
+  }
+
   return (
     <Tabs defaultValue="articles" className="w-full">
       <div className="flex items-center justify-between mb-4">
@@ -60,13 +78,18 @@ const ContentPage = () => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {articlesData.map((article) => (
+                        {isLoading && (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center">Carregando...</TableCell>
+                          </TableRow>
+                        )}
+                        {!isLoading && articlesData?.map((article) => (
                         <TableRow key={article.id}>
                             <TableCell className="font-medium">{article.title}</TableCell>
-                            <TableCell>{article.author}</TableCell>
-                            <TableCell>{article.date}</TableCell>
+                            <TableCell>{article.author_name}</TableCell>
+                            <TableCell>{formatDate(article.published_at)}</TableCell>
                             <TableCell>
-                                <Badge variant={statusVariantMap[article.status] || 'outline'}>
+                                <Badge variant={statusVariantMap[article.status.toLowerCase()] || 'outline'}>
                                     {article.status}
                                 </Badge>
                             </TableCell>
@@ -87,6 +110,13 @@ const ContentPage = () => {
                             </TableCell>
                         </TableRow>
                         ))}
+                         {!isLoading && articlesData?.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
+                                    Nenhum artigo encontrado.
+                                </TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
             </CardContent>
@@ -131,4 +161,12 @@ const ContentPage = () => {
   );
 };
 
-export default ContentPage;
+export default function ContentPage() {
+    return (
+        <FirebaseClientProvider>
+            <ContentPageBody />
+        </FirebaseClientProvider>
+    );
+}
+
+    
