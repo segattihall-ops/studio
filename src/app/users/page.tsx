@@ -37,6 +37,7 @@ import { FirebaseClientProvider, useAuth, useFirestore, useCollection, useMemoFi
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { formatDistanceToNow } from 'date-fns';
 
 const addUserSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -52,6 +53,7 @@ type User = {
   firstName: string;
   lastName: string;
   email: string;
+  lastLogin?: { toDate: () => Date };
 };
 
 function AddUserSheet({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
@@ -79,6 +81,7 @@ function AddUserSheet({ open, onOpenChange }: { open: boolean, onOpenChange: (op
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        lastLogin: null,
       };
       
       await setDoc(doc(firestore, 'users', user.uid), userProfile);
@@ -184,6 +187,11 @@ function UsersPageContent() {
   const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
   const { data: usersData, isLoading } = useCollection<User>(usersQuery);
 
+  const getTimeAgo = (date: Date | undefined) => {
+    if(!date) return 'Nunca';
+    return `${formatDistanceToNow(date)} ago`;
+  }
+
   return (
     <>
       <Card>
@@ -203,6 +211,7 @@ function UsersPageContent() {
               <TableRow>
                 <TableHead>Usuário</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Último Login</TableHead>
                 <TableHead>
                   <span className="sr-only">Ações</span>
                 </TableHead>
@@ -211,7 +220,7 @@ function UsersPageContent() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center">Carregando...</TableCell>
+                  <TableCell colSpan={4} className="text-center">Carregando...</TableCell>
                 </TableRow>
               )}
               {usersData?.map((user) => (
@@ -228,6 +237,7 @@ function UsersPageContent() {
                     </div>
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
+                  <TableCell>{getTimeAgo(user.lastLogin?.toDate())}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -247,7 +257,7 @@ function UsersPageContent() {
               ))}
                {!isLoading && usersData?.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground py-10">
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
                         Nenhum usuário encontrado.
                     </TableCell>
                 </TableRow>

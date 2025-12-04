@@ -36,6 +36,11 @@
         "address": {
           "type": "string",
           "description": "The physical address of the user."
+        },
+        "lastLogin": {
+          "type": "string",
+          "description": "The timestamp of the user's last login.",
+          "format": "date-time"
         }
       },
       "required": [
