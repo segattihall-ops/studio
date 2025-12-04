@@ -14,9 +14,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Sheet,
@@ -35,9 +34,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useState } from 'react';
 import { FirebaseClientProvider, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import type { DateRange } from 'react-day-picker';
 
 const addUserSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -81,7 +84,7 @@ function AddUserSheet({ open, onOpenChange }: { open: boolean, onOpenChange: (op
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
-        lastLogin: null,
+        lastLogin: new Date(),
       };
       
       await setDoc(doc(firestore, 'users', user.uid), userProfile);
@@ -183,8 +186,18 @@ function AddUserSheet({ open, onOpenChange }: { open: boolean, onOpenChange: (op
 
 function UsersPageContent() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [date, setDate] = useState<Date | undefined>();
   const firestore = useFirestore();
-  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    const baseQuery = collection(firestore, 'users');
+    if (date) {
+        return query(baseQuery, where('lastLogin', '>=', Timestamp.fromDate(date)));
+    }
+    return query(baseQuery);
+  }, [firestore, date]);
+
   const { data: usersData, isLoading } = useCollection<User>(usersQuery);
 
   const getTimeAgo = (date: Date | undefined) => {
@@ -195,15 +208,42 @@ function UsersPageContent() {
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-              <CardTitle className="font-headline">Gerenciamento de Usuários</CardTitle>
-              <CardDescription>Visualize, edite e gerencie perfis de usuários.</CardDescription>
+        <CardHeader>
+           <div className="flex flex-row items-center justify-between">
+              <div>
+                  <CardTitle className="font-headline">Gerenciamento de Usuários</CardTitle>
+                  <CardDescription>Visualize, edite e gerencie perfis de usuários.</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date"
+                        variant={"outline"}
+                        className={cn(
+                          "w-[240px] justify-start text-left font-normal",
+                          !date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {date ? format(date, "PPP") : <span>Selecione uma data</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={setDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <Button size="sm" onClick={() => setIsSheetOpen(true)}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Adicionar Usuário
+                  </Button>
+              </div>
           </div>
-          <Button size="sm" onClick={() => setIsSheetOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Adicionar Usuário
-          </Button>
         </CardHeader>
         <CardContent>
           <Table>
