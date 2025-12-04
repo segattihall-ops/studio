@@ -8,9 +8,16 @@ import { ArrowLeft, Check, X, FileText, Loader2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FirebaseClientProvider, useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import type { Therapist } from '@/app/therapists/page';
+import type { Therapist as BaseTherapist } from '@/app/therapists/page';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+
+type Therapist = BaseTherapist & {
+    document_url?: string;
+    card_url?: string;
+    selfie_url?: string;
+    signed_term_url?: string;
+};
 
 function VerificationPageContent() {
   const firestore = useFirestore();
@@ -29,14 +36,17 @@ function VerificationPageContent() {
 
   // Automatically select the first therapist if the list loads/changes
   useEffect(() => {
-    if (!isLoadingTherapists && pendingTherapists) {
-      if(pendingTherapists.length > 0 && !selectedTherapist) {
+    if (pendingTherapists && pendingTherapists.length > 0) {
+      // If there's no selection or the selected one is no longer in the pending list, select the first one.
+      const isSelectedInList = pendingTherapists.some(t => t.id === selectedTherapist?.id);
+      if (!isSelectedInList) {
         setSelectedTherapist(pendingTherapists[0]);
-      } else if (pendingTherapists.length === 0) {
-        setSelectedTherapist(null);
       }
+    } else if (!isLoadingTherapists && pendingTherapists?.length === 0) {
+      // If the list is loaded and empty, clear selection.
+      setSelectedTherapist(null);
     }
-  }, [pendingTherapists, isLoadingTherapists, selectedTherapist]);
+  }, [pendingTherapists, isLoadingTherapists, selectedTherapist?.id]);
 
   const handleVerification = async (therapistId: string, newStatus: 'Active' | 'Rejected') => {
     if (!firestore || !auth?.currentUser) return;
@@ -60,10 +70,7 @@ function VerificationPageContent() {
         title: 'Verificação Completa',
         description: `O terapeuta foi ${newStatus === 'Active' ? 'aprovado' : 'rejeitado'}.`,
       });
-      // After update, select the next therapist in the list or null if none left
-      const updatedList = pendingTherapists?.filter(t => t.id !== therapistId) || [];
-      setSelectedTherapist(updatedList.length > 0 ? updatedList[0] : null);
-
+      // The useEffect will handle selecting the next therapist
     } catch (error: any) {
       toast({
         variant: 'destructive',
