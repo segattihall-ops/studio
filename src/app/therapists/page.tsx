@@ -452,3 +452,5 @@ const TherapistsPage = () => (
 );
 
 export default TherapistsPage;
+
+    
