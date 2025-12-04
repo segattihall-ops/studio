@@ -58,7 +58,7 @@
         },
         "userId": {
           "type": "string",
-          "description": "Reference to the User entity. (Relationship: User 1:N Subscription)"
+          "description": "Reference to the User entity."
         },
         "startDate": {
           "type": "string",
@@ -76,7 +76,7 @@
         },
         "planId": {
           "type": "string",
-          "description": "Reference to the Plan entity. (Relationship: Plan 1:N Subscription)"
+          "description": "Reference to the Plan entity."
         }
       },
       "required": [
@@ -295,18 +295,14 @@
         }
       },
       {
-        "path": "/users/{userId}/subscriptions/{subscriptionId}",
+        "path": "/subscriptions/{subscriptionId}",
         "definition": {
           "entityName": "Subscription",
           "schema": {
             "$ref": "#/backend/entities/Subscription"
           },
-          "description": "Stores user subscriptions. Located under the user's document to enforce ownership via path-based rules.",
+          "description": "Stores all user subscriptions in a top-level collection for easier admin queries. Each document contains a userId to link back to the user.",
           "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
             {
               "name": "subscriptionId",
               "description": "The unique identifier of the subscription."
@@ -383,7 +379,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support a massage directory with user subscriptions. It prioritizes authorization independence by structuring data to avoid hierarchical `get()` calls in security rules. This is achieved by storing user-related data under their respective user IDs, enabling simple, path-based security rules.\n\nThe `/users/{userId}` collection stores user profiles.  Subscriptions are stored in a subcollection `/users/{userId}/subscriptions/{subscriptionId}` to represent the `User 1:N Subscription` relationship. Plans are stored in a top-level `/plans/{planId}` collection. The `/therapists/{therapistId}` collection stores public profiles for therapists, which can be listed by all users. New top-level collections for `/payments`, `/billing_event_logs`, `/settings`, and `/articles` have been added to support a robust billing and content management integration, keeping sensitive financial data, configurations, and content separate and secure.\n\nAuthorization Independence: The structure places user-owned data under `/users/{userId}`, allowing rules to directly verify `request.auth.uid == userId` without needing to fetch parent document data.  Since subscriptions are nested under the user, the rules can also ensure that only the user can manage their own subscriptions.\n\nQAPs (Rules are not Filters):  The segregation of user data into individual user-scoped collections allows for secure `list` operations.  For example, administrators can `list` all users in the `/users` collection, and users can securely `list` their subscriptions from `/users/{userId}/subscriptions`.  No complex filtering is required in the rules.\n\nThis design promotes clear, maintainable security rules and supports atomic operations, enhancing data integrity and application scalability."
+    "reasoning": "The Firestore data structure is designed to support a massage directory with user subscriptions. It prioritizes authorization independence by structuring data to avoid hierarchical `get()` calls in security rules. This is achieved by storing user-related data under their respective user IDs, enabling simple, path-based security rules.\n\nThe `/users/{userId}` collection stores user profiles. Subscriptions have been moved to a top-level `/subscriptions/{subscriptionId}` collection to allow for efficient admin-level queries across all users, while still containing a `userId` field for data linkage. Plans are in `/plans/{planId}`. The `/therapists/{therapistId}` collection stores public profiles. New top-level collections for `/payments`, `/billing_event_logs`, `/settings`, and `/articles` have been added to support a robust billing and content management integration, keeping sensitive financial data, configurations, and content separate and secure.\n\nAuthorization Independence: The structure places user-owned data under `/users/{userId}`, allowing rules to directly verify `request.auth.uid == userId`. Admin-level `list` operations on `/subscriptions` are now possible without complex queries.\n\nQAPs (Rules are not Filters):  The segregation of data into appropriate top-level or user-scoped collections allows for secure `list` operations. For example, administrators can `list` all users in the `/users` collection, and now also `list` all subscriptions from the `/subscriptions` collection. No complex filtering is required in the rules.\n\nThis design promotes clear, maintainable security rules and supports atomic operations, enhancing data integrity and application scalability."
   }
 }
-    
