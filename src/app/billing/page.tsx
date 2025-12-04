@@ -10,13 +10,13 @@ import { Terminal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const revenueData = [
-  { date: '01/24', revenue: 4000 }, { date: '02/24', revenue: 3000 }, { date: '03/24', revenue: 5000 },
-  { date: '04/24', revenue: 4500 }, { date: '05/24', revenue: 6000 }, { date: '06/24', revenue: 5500 }
+  { date: '01/24', revenue: 0 }, { date: '02/24', revenue: 0 }, { date: '03/24', revenue: 0 },
+  { date: '04/24', revenue: 0 }, { date: '05/24', revenue: 0 }, { date: '06/24', revenue: 0 }
 ];
 
 const subscriptionsData = [
-  { date: '01/24', count: 200 }, { date: '02/24', count: 210 }, { date: '03/24', count: 250 },
-  { date: '04/24', count: 270 }, { date: '05/24', count: 300 }, { date: '06/24', count: 320 }
+  { date: '01/24', count: 0 }, { date: '02/24', count: 0 }, { date: '03/24', count: 0 },
+  { date: '04/24', count: 0 }, { date: '05/24', count: 0 }, { date: '06/24', count: 0 }
 ];
 
 const BillingPage = () => {

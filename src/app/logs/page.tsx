@@ -13,12 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const logsData = [
-  { id: 1, level: 'ERROR', message: 'Failed to process payment for user: usr_123', timestamp: '2024-07-21 15:00:12', service: 'Billing' },
-  { id: 2, level: 'INFO', message: 'User usr_456 logged in successfully', timestamp: '2024-07-21 14:55:03', service: 'Auth' },
-  { id: 3, level: 'WARN', message: 'API rate limit approaching for endpoint /api/therapists', timestamp: '2024-07-21 14:50:21', service: 'API' },
-  { id: 4, level: 'DEBUG', message: 'Running query for therapists in NY', timestamp: '2024-07-21 14:45:10', service: 'Database' },
-];
+const logsData: any[] = [];
 
 const levelVariantMap: { [key: string]: 'destructive' | 'default' | 'secondary' | 'outline' } = {
   'ERROR': 'destructive',
@@ -75,7 +70,7 @@ const LogsPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {logsData.map((log) => (
+            {logsData.length > 0 ? logsData.map((log) => (
               <TableRow key={log.id}>
                 <TableCell>
                   <Badge variant={levelVariantMap[log.level]}>{log.level}</Badge>
@@ -84,7 +79,13 @@ const LogsPage = () => {
                  <TableCell>{log.service}</TableCell>
                 <TableCell>{log.timestamp}</TableCell>
               </TableRow>
-            ))}
+            )) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
+                  Nenhum log para exibir. Os logs do sistema aparecerão aqui.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
