@@ -22,7 +22,7 @@ const AppHeader = () => {
             >
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z" />
             </svg>
-            <span className="font-bold font-headline">Admin View</span>
+            <span className="font-bold font-headline">MasseurMatch</span>
           </Link>
       </div>
       

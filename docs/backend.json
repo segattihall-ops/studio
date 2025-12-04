@@ -1,0 +1,190 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the massage directory.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user.",
+          "format": "uuid"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number of the user."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "The date of birth of the user.",
+          "format": "date"
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the user."
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email"
+      ]
+    },
+    "Subscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subscription",
+      "type": "object",
+      "description": "Represents a user's subscription to the massage directory.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subscription.",
+          "format": "uuid"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User entity. (Relationship: User 1:N Subscription)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The start date of the subscription.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The end date of the subscription.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the subscription (e.g., active, inactive, cancelled)."
+        },
+        "planId": {
+          "type": "string",
+          "description": "Reference to the Plan entity. (Relationship: Plan 1:N Subscription)"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "startDate",
+        "endDate",
+        "status",
+        "planId"
+      ]
+    },
+    "Plan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Plan",
+      "type": "object",
+      "description": "Represents a subscription plan.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the plan.",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the plan (e.g., Basic, Premium)."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the plan."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the plan's features and benefits."
+        },
+        "duration": {
+          "type": "string",
+          "description": "The duration of the subscription (e.g., Monthly, Annually)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price",
+        "description"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Path-based ownership simplifies security rules ensuring only the authenticated user can access their own profile.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/subscriptions/{subscriptionId}",
+        "definition": {
+          "entityName": "Subscription",
+          "schema": {
+            "$ref": "#/backend/entities/Subscription"
+          },
+          "description": "Stores user subscriptions. Located under the user's document to enforce ownership via path-based rules.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "subscriptionId",
+              "description": "The unique identifier of the subscription."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/plans/{planId}",
+        "definition": {
+          "entityName": "Plan",
+          "schema": {
+            "$ref": "#/backend/entities/Plan"
+          },
+          "description": "Stores subscription plans.  Accessible to all users for viewing available plans. Admin access can be controlled via a separate `/roles_admin/{uid}` document check.",
+          "params": [
+            {
+              "name": "planId",
+              "description": "The unique identifier of the plan."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support a massage directory with user subscriptions. It prioritizes authorization independence by structuring data to avoid hierarchical `get()` calls in security rules. This is achieved by storing user-related data under their respective user IDs, enabling simple, path-based security rules.\n\nThe `/users/{userId}` collection stores user profiles.  Subscriptions are stored in a subcollection `/users/{userId}/subscriptions/{subscriptionId}` to represent the `User 1:N Subscription` relationship. Plans are stored in a top-level `/plans/{planId}` collection.\n\nAuthorization Independence: The structure places user-owned data under `/users/{userId}`, allowing rules to directly verify `request.auth.uid == userId` without needing to fetch parent document data.  Since subscriptions are nested under the user, the rules can also ensure that only the user can manage their own subscriptions.\n\nQAPs (Rules are not Filters):  The segregation of user data into individual user-scoped collections allows for secure `list` operations.  For example, administrators can `list` all users in the `/users` collection, and users can securely `list` their subscriptions from `/users/{userId}/subscriptions`.  No complex filtering is required in the rules.\n\nThis design promotes clear, maintainable security rules and supports atomic operations, enhancing data integrity and application scalability."
+  }
+}

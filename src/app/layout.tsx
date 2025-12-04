@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import MainLayout from "@/components/layout/main-layout";
 
 export const metadata: Metadata = {
-  title: "Admin View",
+  title: "MasseurMatch Admin",
   description: "Admin dashboard for managing your application.",
 };
 

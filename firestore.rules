@@ -1,0 +1,145 @@
+/**
+ * This ruleset enforces a strict user-ownership model for a massage directory application.
+ * All user-specific data, including profiles and subscriptions, is sandboxed within a
+ * user's own data tree, making it impossible for one user to access another's private information.
+ *
+ * Core Philosophy:
+ * The security model is centered on user privacy and data isolation. Each user has complete
+ * control over their own documents, and no user can list or view the data of others. Publicly
+ * accessible data, like subscription plans, is stored in a separate top-level collection
+ * and is read-only for all users to prevent unauthorized modifications.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores the private profile for a single user.
+ * - /users/{userId}/subscriptions/{subscriptionId}: A subcollection containing the user's
+ *   private subscription records. This nested structure ensures that access control is inherited
+ *   from the parent user document.
+ * - /plans/{planId}: A top-level collection for subscription plans, which are public to read.
+ *
+ * Key Security Decisions:
+ * - User Data Sandboxing: All rules for paths under `/users/{userId}` check that the
+ *   requesting user's ID matches the `{userId}` in the path.
+ * - No User Listing: The `list` permission on the top-level `/users` collection is explicitly
+ *   denied to protect user privacy and prevent data scraping.
+ * - Public Read-Only Collections: The `/plans` collection is readable by anyone, including
+ *   unauthenticated users, to allow browsing of available subscriptions. However, all write
+ *   operations are disabled, as there is no defined admin role to manage them securely.
+ * - Relational Integrity: On document creation, rules validate that the internal `userId`
+ *   field matches the `userId` in the document path, ensuring data consistency. Key identifiers
+ *   are also enforced as immutable on updates.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ----------------------------------------------------------------------
+    // Helper Functions
+    // ----------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the requesting user's UID matches the provided userId.
+     * This is the foundation of the user ownership model.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks for ownership on an existing document. Used for update and delete
+     * operations to prevent acting on documents that don't exist.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that the user document being created contains an 'id' field that
+     * matches the user's authentication UID, ensuring path and data consistency.
+     */
+    function isValidUserCreate(userId, userData) {
+      return userData.id == userId;
+    }
+    
+    /**
+     * Enforces immutability of the user's unique ID field during an update.
+     */
+    function isImmutableUserId(requestData, resourceData) {
+      return requestData.id == resourceData.id;
+    }
+
+    /**
+     * Validates that the subscription being created contains a 'userId' field
+     * that matches the parent user document's ID in the path.
+     */
+    function isValidSubscriptionCreate(userId, subscriptionData) {
+      return subscriptionData.userId == userId;
+    }
+
+    /**
+     * Enforces immutability of the subscription's 'userId' field during an update,
+     * preventing it from being reassigned to another user.
+     */
+    function isImmutableSubscriptionUserId(requestData, resourceData) {
+      return requestData.userId == resourceData.userId;
+    }
+
+
+    // ----------------------------------------------------------------------
+    // Collection Rules
+    // ----------------------------------------------------------------------
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own profile document, e.g., auth.uid = 'user_abc', path = '/users/user_abc'.
+     * @deny (get) An authenticated user trying to read another user's profile, e.g., auth.uid = 'user_xyz', path = '/users/user_abc'.
+     * @principle Restricts access to a user's own data tree, preventing cross-user data access.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidUserCreate(userId, request.resource.data);
+      allow update: if isExistingOwner(userId) && isImmutableUserId(request.resource.data, resource.data);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to a user's subscription records.
+     * @path /users/{userId}/subscriptions/{subscriptionId}
+     * @allow (list) An authenticated user listing their own subscriptions, e.g., auth.uid = 'user_abc', path = '/users/user_abc/subscriptions'.
+     * @deny (create) An authenticated user trying to create a subscription for another user, e.g., auth.uid = 'user_xyz', path = '/users/user_abc/subscriptions'.
+     * @principle Enforces inherited ownership from the parent document path.
+     */
+    match /users/{userId}/subscriptions/{subscriptionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidSubscriptionCreate(userId, request.resource.data);
+      allow update: if isExistingOwner(userId) && isImmutableSubscriptionUserId(request.resource.data, resource.data);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to public subscription plans.
+     * @path /plans/{planId}
+     * @allow (get) Any user, including unauthenticated ones, reading a specific plan.
+     * @deny (create) Any user trying to create a new plan document.
+     * @principle Provides public read access for browsing but locks down all write operations to prevent unauthorized changes.
+     */
+    match /plans/{planId} {
+      allow get: if true;
+      allow list: if true;
+      // CRITICAL: Write operations are disabled because the 'Plan' entity lacks an ownership field (e.g., 'adminId')
+      // and no admin role system is defined. This prevents any user from modifying public plan data.
+      allow create: if false; // TODO: Implement admin-only access once an admin role system is in place.
+      allow update: if false; // TODO: Implement admin-only access once an admin role system is in place.
+      allow delete: if false; // TODO: Implement admin-only access once an admin role system is in place.
+    }
+  }
+}

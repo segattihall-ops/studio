@@ -47,7 +47,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             >
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z" />
             </svg>
-            <h1 className="text-xl font-headline font-semibold">Admin View</h1>
+            <h1 className="text-xl font-headline font-semibold">MasseurMatch</h1>
           </Link>
         </SidebarHeader>
         <SidebarContent>
