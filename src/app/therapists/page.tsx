@@ -38,7 +38,7 @@ import { MoreHorizontal, PlusCircle, File, Search, ChevronDown, User, Edit, Tras
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -46,8 +46,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { FirebaseClientProvider, useAuth, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, collection, deleteDoc, updateDoc } from 'firebase/firestore';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const statusVariantMap: { [key: string]: 'default' | 'secondary' | 'destructive' } = {
   'Active': 'default',
@@ -89,6 +90,7 @@ type Therapist = {
 function AddTherapistSheet({ open, onOpenChange }: { open: boolean, onOpenChange: (open: boolean) => void }) {
   const auth = useAuth();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const form = useForm<AddTherapistForm>({
     resolver: zodResolver(addTherapistSchema),
     defaultValues: {
@@ -101,7 +103,7 @@ function AddTherapistSheet({ open, onOpenChange }: { open: boolean, onOpenChange
   const onSubmit = async (data: AddTherapistForm) => {
     if (!auth || !firestore) return;
     try {
-      // Create user in Auth first, but don't sign them in on the admin client
+      // This is a temporary auth instance for user creation, it won't sign in the admin.
       const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
       const user = userCredential.user;
 
@@ -110,7 +112,7 @@ function AddTherapistSheet({ open, onOpenChange }: { open: boolean, onOpenChange
         full_name: data.fullName,
         email: data.email,
         status: 'Pending',
-        plan: 'Free',
+        plan: 'free',
         plan_name: 'Free Tier',
         subscription_status: 'Active',
         updated_at: serverTimestamp(),
@@ -184,12 +186,12 @@ function AddTherapistSheet({ open, onOpenChange }: { open: boolean, onOpenChange
                 )}
               />
                <SheetFooter className="pt-4">
+                 <SheetClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </SheetClose>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                     {form.formState.isSubmitting ? 'Adicionando...' : 'Adicionar Terapeuta'}
                 </Button>
-                <SheetClose asChild>
-                  <Button variant="outline">Cancelar</Button>
-                </SheetClose>
               </SheetFooter>
             </form>
           </Form>
@@ -202,6 +204,7 @@ function AddTherapistSheet({ open, onOpenChange }: { open: boolean, onOpenChange
 
 function EditTherapistSheet({ open, onOpenChange, therapist }: { open: boolean, onOpenChange: (open: boolean) => void, therapist: Therapist | null }) {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const form = useForm<EditTherapistForm>({
     resolver: zodResolver(editTherapistSchema),
     values: {
@@ -245,7 +248,7 @@ function EditTherapistSheet({ open, onOpenChange, therapist }: { open: boolean, 
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
+      <SheetContent className="sm:max-w-md">
         <SheetHeader>
           <SheetTitle>Editar Terapeuta</SheetTitle>
           <SheetDescription>Atualize os detalhes do terapeuta.</SheetDescription>
@@ -253,21 +256,37 @@ function EditTherapistSheet({ open, onOpenChange, therapist }: { open: boolean, 
         <div className="p-4">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Form fields for editing */}
               <FormField control={form.control} name="fullName" render={({ field }) => (<FormItem><FormLabel>Nome Completo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="status" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Active">Ativo</SelectItem>
+                      <SelectItem value="Pending">Pendente</SelectItem>
+                      <SelectItem value="Inactive">Inativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
               <FormField control={form.control} name="plan" render={({ field }) => (<FormItem><FormLabel>Plano (ID)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="planName" render={({ field }) => (<FormItem><FormLabel>Nome do Plano</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="subscriptionStatus" render={({ field }) => (<FormItem><FormLabel>Status da Assinatura</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 
               <SheetFooter className="pt-4">
+                 <SheetClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </SheetClose>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
                 </Button>
-                <SheetClose asChild>
-                  <Button variant="outline">Cancelar</Button>
-                </SheetClose>
               </SheetFooter>
             </form>
           </Form>
@@ -282,6 +301,7 @@ function TherapistsPageContent() {
   const firestore = useFirestore();
   const therapistsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'therapists') : null, [firestore]);
   const { data: therapists, isLoading } = useCollection<Therapist>(therapistsQuery);
+  const { toast } = useToast();
   
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
@@ -371,7 +391,7 @@ function TherapistsPageContent() {
                   <TableCell>{therapist.email}</TableCell>
                   <TableCell>{therapist.plan_name}</TableCell>
                   <TableCell>
-                    <Badge variant={statusVariantMap[therapist.status]}>
+                    <Badge variant={statusVariantMap[therapist.status] || 'outline'}>
                       {therapist.status}
                     </Badge>
                   </TableCell>
@@ -418,11 +438,9 @@ function TherapistsPageContent() {
           </Table>
         </CardContent>
       </Card>
-
-      <FirebaseClientProvider>
-        <AddTherapistSheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen} />
-        <EditTherapistSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} therapist={selectedTherapist} />
-      </FirebaseClientProvider>
+      
+      <AddTherapistSheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen} />
+      {selectedTherapist && <EditTherapistSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} therapist={selectedTherapist} />}
     </>
   );
 };
@@ -434,5 +452,3 @@ const TherapistsPage = () => (
 );
 
 export default TherapistsPage;
-
-    

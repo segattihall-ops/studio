@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type TherapistProfile = {
+    id: string;
     full_name: string;
     email: string;
     status: string;
@@ -76,7 +77,7 @@ function TherapistProfilePageContent() {
     }
 
     if (!therapist) {
-        return <p>Therapist not found.</p>;
+        return <p>Terapeuta não encontrado.</p>;
     }
 
     return (
@@ -133,5 +134,3 @@ export default function TherapistProfilePage() {
         </FirebaseClientProvider>
     );
 }
-
-    
