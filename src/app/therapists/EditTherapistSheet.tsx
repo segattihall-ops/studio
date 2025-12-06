@@ -125,7 +125,7 @@ export function EditTherapistSheet({ open, onOpenChange, therapist }: { open: bo
               )} />
               <FormField control={form.control} name="plan" render={({ field }) => (<FormItem><FormLabel>Plan (ID)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="planName" render={({ field }) => (<FormItem><FormLabel>Plan Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="subscriptionStatus" render={({ field }) => (<FormItem><FormLabel>Subscription Status</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormMessage>)} />
+              <FormField control={form.control} name="subscriptionStatus" render={({ field }) => (<FormItem><FormLabel>Subscription Status</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
 
               <SheetFooter className="pt-4">
                  <SheetClose asChild>
