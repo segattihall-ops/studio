@@ -23,15 +23,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { MoreHorizontal, PlusCircle, File, Search, ChevronDown, User, Edit, UserX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useState, useMemo } from 'react';
-import { FirebaseClientProvider, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, collection, serverTimestamp } from 'firebase/firestore';
+import { FirebaseClientProvider, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, FirestorePermissionError, errorEmitter } from '@/firebase';
+import { doc, collection, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { AddTherapistSheet } from './AddTherapistSheet';
@@ -68,6 +67,7 @@ function TherapistsPageContent() {
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isEditSheetOpen, setIsEditSheetOpen] = useState(false);
   const [selectedTherapist, setSelectedTherapist] = useState<Therapist | null>(null);
+  const [therapistToDeactivate, setTherapistToDeactivate] = useState<Therapist | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
 
@@ -76,14 +76,27 @@ function TherapistsPageContent() {
     setIsEditSheetOpen(true);
   };
   
-  const handleDeactivate = (therapistId: string) => {
+  const handleDeactivate = (therapist: Therapist) => {
     if (!firestore) return;
-    const docRef = doc(firestore, 'therapists', therapistId);
-    updateDocumentNonBlocking(docRef, { status: 'Inactive', updatedAt: serverTimestamp() });
-    toast({
-      title: 'Therapist Deactivation Initiated',
-      description: 'The therapist status will be updated to Inactive shortly.',
-    });
+    const docRef = doc(firestore, 'therapists', therapist.id);
+    const updateData = { status: 'Inactive', updatedAt: serverTimestamp() };
+    
+    updateDoc(docRef, updateData)
+      .then(() => {
+        toast({
+          title: 'Therapist Deactivated',
+          description: `${therapist.full_name} has been deactivated.`,
+        });
+      })
+      .catch(error => {
+         const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+      setTherapistToDeactivate(null);
   };
 
   const handleExport = () => {
@@ -212,25 +225,9 @@ function TherapistsPageContent() {
                         <DropdownMenuItem onClick={() => handleEdit(therapist)}>
                             <Edit className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                                    <UserX className="mr-2 h-4 w-4" /> Deactivate
-                                </DropdownMenuItem>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will set the therapist's status to "Inactive". They will not be able to log in but their data will be preserved.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeactivate(therapist.id)} className="bg-destructive hover:bg-destructive/90">Deactivate</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                        <DropdownMenuItem onSelect={() => setTherapistToDeactivate(therapist)} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                            <UserX className="mr-2 h-4 w-4" /> Deactivate
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -248,8 +245,23 @@ function TherapistsPageContent() {
         </CardContent>
       </Card>
       
+      <AlertDialog open={!!therapistToDeactivate} onOpenChange={(isOpen) => !isOpen && setTherapistToDeactivate(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This will set the therapist's status to "Inactive". They will not be able to log in but their data will be preserved.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => therapistToDeactivate && handleDeactivate(therapistToDeactivate)} className="bg-destructive hover:bg-destructive/90">Deactivate</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AddTherapistSheet open={isAddSheetOpen} onOpenChange={setIsAddSheetOpen} />
-      {selectedTherapist && <EditTherapistSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} therapist={selectedTherapist} />}
+      <EditTherapistSheet open={isEditSheetOpen} onOpenChange={setIsEditSheetOpen} therapist={selectedTherapist} />
     </>
   );
 };
@@ -261,5 +273,3 @@ const TherapistsPage = () => (
 );
 
 export default TherapistsPage;
-
-    

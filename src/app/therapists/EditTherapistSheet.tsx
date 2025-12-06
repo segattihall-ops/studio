@@ -16,10 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useFirestore, updateDocumentNonBlocking } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, FirestorePermissionError, errorEmitter } from '@/firebase';
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { Therapist } from './page';
+import { useEffect } from 'react';
 
 const editTherapistSchema = z.object({
     fullName: z.string().min(1, 'Full name is required'),
@@ -37,15 +38,28 @@ export function EditTherapistSheet({ open, onOpenChange, therapist }: { open: bo
   const { toast } = useToast();
   const form = useForm<EditTherapistForm>({
     resolver: zodResolver(editTherapistSchema),
-    values: {
-        fullName: therapist?.full_name || '',
-        email: therapist?.email || '',
-        status: therapist?.status || 'Pending',
-        plan: therapist?.plan || '',
-        planName: therapist?.plan_name || '',
-        subscriptionStatus: therapist?.subscription_status || '',
+    defaultValues: {
+        fullName: '',
+        email: '',
+        status: 'Pending',
+        plan: '',
+        planName: '',
+        subscriptionStatus: '',
     }
   });
+
+  useEffect(() => {
+    if (therapist) {
+        form.reset({
+            fullName: therapist.full_name || '',
+            email: therapist.email || '',
+            status: therapist.status || 'Pending',
+            plan: therapist.plan || '',
+            planName: therapist.plan_name || '',
+            subscriptionStatus: therapist.subscription_status || '',
+        });
+    }
+  }, [therapist, form]);
 
   const onSubmit = (data: EditTherapistForm) => {
     if (!firestore || !therapist) return;
@@ -61,13 +75,22 @@ export function EditTherapistSheet({ open, onOpenChange, therapist }: { open: bo
       updated_at: serverTimestamp(),
     };
 
-    updateDocumentNonBlocking(therapistRef, updateData);
-
-    toast({
-      title: 'Therapist Update Initiated',
-      description: 'The therapist\'s information will be updated shortly.',
-    });
-    onOpenChange(false);
+    updateDoc(therapistRef, updateData)
+      .then(() => {
+         toast({
+          title: 'Therapist Updated',
+          description: "The therapist's information has been updated.",
+        });
+        onOpenChange(false);
+      })
+      .catch(error => {
+        const permissionError = new FirestorePermissionError({
+          path: therapistRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
   };
 
   return (
@@ -102,7 +125,7 @@ export function EditTherapistSheet({ open, onOpenChange, therapist }: { open: bo
               )} />
               <FormField control={form.control} name="plan" render={({ field }) => (<FormItem><FormLabel>Plan (ID)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               <FormField control={form.control} name="planName" render={({ field }) => (<FormItem><FormLabel>Plan Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="subscriptionStatus" render={({ field }) => (<FormItem><FormLabel>Subscription Status</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <FormField control={form.control} name="subscriptionStatus" render={({ field }) => (<FormItem><FormLabel>Subscription Status</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormMessage>)} />
 
               <SheetFooter className="pt-4">
                  <SheetClose asChild>
