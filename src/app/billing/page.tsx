@@ -17,8 +17,20 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-const revenueData: any[] = [];
-const subscriptionsChartData: any[] = [];
+// Define specific types for chart data
+type RevenueData = {
+  date: string;
+  revenue: number;
+};
+
+type SubscriptionChartData = {
+  date: string;
+  count: number;
+};
+
+const revenueData: RevenueData[] = [];
+const subscriptionsChartData: SubscriptionChartData[] = [];
+
 
 type Subscription = {
   id: string;
