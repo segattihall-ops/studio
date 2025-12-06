@@ -12,8 +12,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { FirebaseClientProvider, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query, where, limit, orderBy } from 'firebase/firestore';
+import { collection, query, where, limit, orderBy, Timestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMemo } from 'react';
+import { subDays, format } from 'date-fns';
 
 const iconMap = {
   users: Users,
@@ -24,6 +26,7 @@ const iconMap = {
 
 type User = {
   id: string;
+  created_at?: Timestamp; // Assuming users might have a creation date
 };
 type Subscription = {
   id: string;
@@ -43,11 +46,28 @@ const DashboardPageContent = () => {
   const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
   const activeSubsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'subscriptions'), where('status', '==', 'Active')) : null, [firestore]);
   const recentArticlesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'articles'), orderBy('created_at', 'desc'), limit(4)) : null, [firestore]);
-  // We'll leave payments and user activity for a future step as it requires more complex aggregation.
-
+  
   const { data: usersData, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
   const { data: activeSubsData, isLoading: isLoadingSubs } = useCollection<Subscription>(activeSubsQuery);
   const { data: recentArticles, isLoading: isLoadingArticles } = useCollection<Article>(recentArticlesQuery);
+
+  const userActivityData = useMemo(() => {
+    if (!usersData) return [];
+
+    const last7Days = Array.from({ length: 7 }, (_, i) => subDays(new Date(), i)).reverse();
+    const dailySignups = last7Days.map(date => {
+        const dateString = format(date, 'MMM d');
+        const count = usersData.filter(user => {
+            if (!user.created_at) return false;
+            const userDate = user.created_at.toDate();
+            return format(userDate, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd');
+        }).length;
+        return { date: dateString, users: count };
+    });
+
+    return dailySignups;
+  }, [usersData]);
+
 
   const statsCards = [
     { title: 'Total Users', value: usersData?.length.toString() || '0', isLoading: isLoadingUsers, icon: 'users', change: '+0%' },
@@ -99,12 +119,28 @@ const DashboardPageContent = () => {
       <div className="grid gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle className="font-headline">User Activity</CardTitle>
+            <CardTitle className="font-headline">User Activity (Last 7 Days)</CardTitle>
           </CardHeader>
           <CardContent className="pl-2">
-             <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                User activity data will appear here.
-             </div>
+             {isLoadingUsers ? (
+                <div className="h-[300px] flex items-center justify-center">
+                    <Skeleton className="w-full h-full" />
+                </div>
+             ) : userActivityData.length > 0 ? (
+                <ChartContainer config={{ users: { label: 'New Users', color: 'hsl(var(--primary))' } }} className="h-[300px] w-full">
+                    <BarChart data={userActivityData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} />
+                        <YAxis tickLine={false} axisLine={false} tickMargin={8} allowDecimals={false}/>
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="users" fill="var(--color-users)" radius={4} />
+                    </BarChart>
+                </ChartContainer>
+             ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    User activity data will appear here.
+                </div>
+             )}
           </CardContent>
         </Card>
         <Card className="lg:col-span-2">
@@ -157,3 +193,5 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+
+    
