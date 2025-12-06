@@ -2,13 +2,27 @@
 import React from 'react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '../ui/button';
-import { Search } from 'lucide-react';
+import { LogOut, Search } from 'lucide-react';
 import { Input } from '../ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import Link from 'next/link';
+import { useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 const AppHeader = () => {
+  const auth = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+      router.push('/login');
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-white/10 bg-background/50 px-4 backdrop-blur-xl lg:h-[60px] lg:px-6">
       <div className="flex items-center gap-2">
@@ -43,18 +57,21 @@ const AppHeader = () => {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full w-9 h-9">
                     <Avatar className="w-9 h-9">
-                        <AvatarImage src="https://picsum.photos/seed/admin/40/40" data-ai-hint="person face" alt="Admin"/>
-                        <AvatarFallback>A</AvatarFallback>
+                        <AvatarImage src={`https://picsum.photos/seed/${user?.uid || 'admin'}/40/40`} data-ai-hint="person face" alt="Admin"/>
+                        <AvatarFallback>{user?.email?.charAt(0).toUpperCase() || 'A'}</AvatarFallback>
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="glass-view">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuLabel>{user?.email || 'My Account'}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuItem>Support</DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/settings">Settings</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/support">Support</Link></DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
       </div>

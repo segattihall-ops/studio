@@ -25,16 +25,17 @@ import {
   ScanEye,
   LifeBuoy,
   Settings,
+  LogOut,
+  Loader2,
 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import AppHeader from './header';
+import { FirebaseClientProvider, useAuth, useUser } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
-const MainLayout = ({ children }: { children: React.ReactNode }) => {
-  const pathname = usePathname();
-
-  const menuItems = [
+const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/users', label: 'Users', icon: Users },
     { href: '/therapists', label: 'Therapists', icon: HeartHandshake },
@@ -50,6 +51,46 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
     { href: '/settings', label: 'Settings', icon: Settings },
   ];
 
+function ProtectedLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading, userError } = useUser();
+  const handleLogout = async () => {
+    if (auth) {
+      await signOut(auth);
+      router.push('/login');
+    }
+  };
+
+  React.useEffect(() => {
+    // If loading is finished and there's no user, redirect to login
+    if (!isUserLoading && !user) {
+      router.replace('/login');
+    }
+     // Handle auth errors, e.g. token expired.
+    if(userError) {
+        console.error("Auth error, redirecting to login:", userError);
+        router.replace('/login');
+    }
+
+  }, [user, isUserLoading, userError, router]);
+
+  // While checking user auth, show a full screen loader
+  if (isUserLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // If user is not logged in, render nothing (or a loader) until redirect happens.
+  if (!user) {
+    return null;
+  }
+
+  // User is authenticated, render the main application layout
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
@@ -83,17 +124,15 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
             ))}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter className="p-4 flex flex-col gap-4">
-           <div className="flex items-center gap-3">
-             <Avatar>
-              <AvatarImage src="https://picsum.photos/seed/admin/40/40" data-ai-hint="person face" />
-              <AvatarFallback>A</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="font-semibold">Admin User</span>
-              <span className="text-xs text-muted-foreground">admin@example.com</span>
-            </div>
-           </div>
+        <SidebarFooter className="p-4 flex flex-col gap-2">
+            <SidebarMenu>
+                <SidebarMenuItem>
+                    <SidebarMenuButton onClick={handleLogout} tooltip="Logout">
+                        <LogOut />
+                        <span>Logout</span>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
+            </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -102,6 +141,23 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+
+const MainLayout = ({ children }: { children: React.ReactNode }) => {
+  const pathname = usePathname();
+  
+  // The FirebaseClientProvider needs to wrap any component that uses Firebase hooks.
+  // We conditionally render the protected layout or the public pages (like /login).
+  return (
+      <FirebaseClientProvider>
+          {pathname === '/login' ? (
+              children
+          ) : (
+              <ProtectedLayout>{children}</ProtectedLayout>
+          )}
+      </FirebaseClientProvider>
+  )
 };
 
 export default MainLayout;
