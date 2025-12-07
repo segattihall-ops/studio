@@ -14,7 +14,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const adminContext = await getAdminContext();
+  // Safely fetch admin context, fallback to null if there's any error
+  let adminContext: Awaited<ReturnType<typeof getAdminContext>> = { user: null, admin: null };
+  try {
+    adminContext = await getAdminContext();
+  } catch (error) {
+    console.error('[RootLayout] Error fetching admin context:', error);
+  }
   const adminEmail = 'user' in adminContext && adminContext.user ? adminContext.user.email ?? undefined : undefined;
 
   return (

@@ -138,7 +138,11 @@ function ProtectedLayout({ children, adminEmail }: LayoutProps) {
 const MainLayout = ({ children, adminEmail }: LayoutProps) => {
   const pathname = usePathname();
 
-  return pathname === '/login' ? <>{children}</> : <ProtectedLayout adminEmail={adminEmail}>{children}</ProtectedLayout>;
+  // Rotas públicas que não devem ter o layout protegido
+  const publicRoutes = ['/login', '/forgot-password', '/reset-password'];
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
+
+  return isPublicRoute ? <>{children}</> : <ProtectedLayout adminEmail={adminEmail}>{children}</ProtectedLayout>;
 };
 
 export default MainLayout;

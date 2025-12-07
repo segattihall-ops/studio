@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,17 @@ import { Loader2 } from 'lucide-react';
 export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
+
+  // Protect against external scripts blocking inputs
+  useEffect(() => {
+    const handleError = (e: ErrorEvent) => {
+      console.warn('[LoginPage] Suppressed external error:', e.message);
+      e.preventDefault();
+      return true;
+    };
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -100,6 +111,14 @@ export default function LoginPage() {
             {isSigningIn ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Sign In
           </Button>
+          <div className="mt-4 text-center">
+            <a
+              href="/forgot-password"
+              className="text-sm text-primary hover:underline"
+            >
+              Esqueceu a senha?
+            </a>
+          </div>
         </CardContent>
       </Card>
     </div>

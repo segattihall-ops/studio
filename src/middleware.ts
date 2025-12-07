@@ -5,12 +5,16 @@ import { ALLOWED_ADMIN_ROLES } from './lib/auth/server';
 
 const PUBLIC_PATHS = [
   '/login',
+  '/forgot-password',
+  '/reset-password',
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/callback',
   '/api/auth/signout',
   '/api/auth/refresh',
   '/api/auth/oauth',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
   '/favicon.ico',
 ];
 
