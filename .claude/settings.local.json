@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd password recovery system and fix UI input blocking issues\n\n## Features\n- Implement complete forgot/reset password flow with email verification\n- Add password recovery pages (forgot-password, reset-password)\n- Create API routes for password reset functionality\n\n## Bug Fixes\n- Fix Card component pseudo-element blocking input interactions\n- Add pointer-events-none to prevent overlay from blocking clicks\n- Add error handling in Root Layout for better stability\n\n## Authentication\n- Update middleware to allow public access to password recovery routes\n- Add forgot password link to login page\n- Configure redirect URLs for password reset emails\n\n## Documentation\n- Add comprehensive admin user setup guides\n- Include SQL scripts for creating admin users with different roles\n- Document simplified manual admin creation process\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)",
+      "Bash(grep:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
