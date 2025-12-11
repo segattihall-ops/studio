@@ -3,7 +3,7 @@ import { failure, success } from '@/lib/http/responses';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { logAdminAction } from '@/lib/supabase/crud';
 
-export async function POST(_: Request, { params }: { params: { id: string } }) {
+export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { admin } = await requireAdmin();
   const { id } = await params;
   const { data, error } = await supabaseAdmin

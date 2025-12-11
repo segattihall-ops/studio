@@ -29,6 +29,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  webpack: (config) => {
+    // Keep cache in-memory to avoid PackFile cache warnings on large sourcemaps.
+    config.cache = {type: 'memory'};
+    return config;
+  },
 };
 
 export default nextConfig;
