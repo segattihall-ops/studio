@@ -22,11 +22,10 @@ Complete documentation for setting up and deploying the admin panel to **admin.m
 
 | Document | Purpose | When to Use |
 |----------|---------|-------------|
-| [COMPLETE_DATABASE_SCHEMA.sql](./COMPLETE_DATABASE_SCHEMA.sql) | Full production database schema | New database setup |
+| [COMPLETE_DATABASE_SCHEMA.sql](./COMPLETE_DATABASE_SCHEMA.sql) | Full production database schema (includes all tables, RPC functions, and triggers) | New database setup |
 | [MIGRATION_FIX_SCHEMA_V2.sql](./MIGRATION_FIX_SCHEMA_V2.sql) | Fix incomplete/broken schema | Migrating existing database |
 | [MIGRATION_FIX_SCHEMA.sql](./MIGRATION_FIX_SCHEMA.sql) | Legacy migration (use V2 instead) | - |
 | [DATABASE_GUIDE.md](./DATABASE_GUIDE.md) | Database structure documentation | Understanding the schema |
-| [supabase-rpcs.sql](./supabase-rpcs.sql) | RPC functions | Additional database functions |
 
 ### Authentication
 
@@ -307,8 +306,7 @@ studio/
 │   ├── OAUTH_SETUP.md
 │   ├── DATABASE_GUIDE.md
 │   ├── COMPLETE_DATABASE_SCHEMA.sql
-│   ├── MIGRATION_FIX_SCHEMA_V2.sql
-│   └── supabase-rpcs.sql
+│   └── MIGRATION_FIX_SCHEMA_V2.sql
 ├── .env.example                # Environment variable template
 └── package.json
 ```

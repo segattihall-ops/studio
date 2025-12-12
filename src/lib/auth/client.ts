@@ -144,7 +144,7 @@ export async function signInWithPassword(email: string, password: string) {
  */
 export async function signOut() {
   // Call backend to clear cookies
-  const response = await fetch('/api/auth/signout', {
+  const response = await fetch('/api/auth/logout', {
     method: 'POST',
   });
 

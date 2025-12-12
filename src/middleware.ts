@@ -10,7 +10,6 @@ const PUBLIC_PATHS = [
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/callback',
-  '/api/auth/signout',
   '/api/auth/refresh',
   '/api/auth/oauth',
   '/api/auth/forgot-password',
