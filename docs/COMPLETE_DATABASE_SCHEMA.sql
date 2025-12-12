@@ -199,7 +199,7 @@ COMMENT ON COLUMN public.admin_logs.target_id IS 'ID of the affected entity';
 -- Settings table (for global app configuration)
 CREATE TABLE IF NOT EXISTS public.settings (
   id text PRIMARY KEY,
-  value jsonb NOT NULL,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
   description text,
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
