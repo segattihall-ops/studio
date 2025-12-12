@@ -340,39 +340,51 @@ ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
 -- Only the backend (using SUPABASE_SERVICE_ROLE_KEY) can access data
 
 -- Profiles policies
+DROP POLICY IF EXISTS "Service role only" ON public.profiles;
 CREATE POLICY "Service role only" ON public.profiles FOR ALL USING (auth.role() = 'service_role');
 
 -- Admins policies
+DROP POLICY IF EXISTS "Service role only" ON public.admins;
 CREATE POLICY "Service role only" ON public.admins FOR ALL USING (auth.role() = 'service_role');
 
 -- Therapists policies
+DROP POLICY IF EXISTS "Service role only" ON public.therapists;
 CREATE POLICY "Service role only" ON public.therapists FOR ALL USING (auth.role() = 'service_role');
 
 -- Verification data policies
+DROP POLICY IF EXISTS "Service role only" ON public.verification_data;
 CREATE POLICY "Service role only" ON public.verification_data FOR ALL USING (auth.role() = 'service_role');
 
 -- Payments policies
+DROP POLICY IF EXISTS "Service role only" ON public.payments;
 CREATE POLICY "Service role only" ON public.payments FOR ALL USING (auth.role() = 'service_role');
 
 -- Subscriptions policies
+DROP POLICY IF EXISTS "Service role only" ON public.subscriptions;
 CREATE POLICY "Service role only" ON public.subscriptions FOR ALL USING (auth.role() = 'service_role');
 
 -- Therapist edits policies
+DROP POLICY IF EXISTS "Service role only" ON public.therapists_edit;
 CREATE POLICY "Service role only" ON public.therapists_edit FOR ALL USING (auth.role() = 'service_role');
 
 -- Profile edits policies
+DROP POLICY IF EXISTS "Service role only" ON public.profile_edits;
 CREATE POLICY "Service role only" ON public.profile_edits FOR ALL USING (auth.role() = 'service_role');
 
 -- Applications policies
+DROP POLICY IF EXISTS "Service role only" ON public.applications;
 CREATE POLICY "Service role only" ON public.applications FOR ALL USING (auth.role() = 'service_role');
 
 -- Legal acceptances policies
+DROP POLICY IF EXISTS "Service role only" ON public.legal_acceptances;
 CREATE POLICY "Service role only" ON public.legal_acceptances FOR ALL USING (auth.role() = 'service_role');
 
 -- Admin logs policies
+DROP POLICY IF EXISTS "Service role only" ON public.admin_logs;
 CREATE POLICY "Service role only" ON public.admin_logs FOR ALL USING (auth.role() = 'service_role');
 
 -- Settings policies
+DROP POLICY IF EXISTS "Service role only" ON public.settings;
 CREATE POLICY "Service role only" ON public.settings FOR ALL USING (auth.role() = 'service_role');
 
 -- =============================================

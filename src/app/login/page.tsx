@@ -88,10 +88,9 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@example.com"
+                placeholder="your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
               />
             </div>
             <div className="space-y-2">
@@ -102,7 +101,7 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
+                onKeyDown={(e) => e.key === 'Enter' && handleSignIn()}
               />
             </div>
             {errorMessage ? <p className="text-destructive text-sm">{errorMessage}</p> : null}
