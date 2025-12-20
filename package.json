@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev -p 9002",
-  "build": "cross-env NODE_ENV=production next build",
-  "start": "next start",
-  "lint": "next lint",
-  "typecheck": "tsc --noEmit"
+    "dev": "next dev -p 9002",
+    "build": "cross-env NODE_ENV=production next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.3",
@@ -34,6 +34,7 @@
     "@radix-ui/react-tooltip": "^1.1.8",
     "@stripe/react-stripe-js": "^3.0.0",
     "@stripe/stripe-js": "^4.1.0",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

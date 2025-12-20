@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { supabaseAdmin } from './lib/supabaseAdmin';
-import { ALLOWED_ADMIN_ROLES } from './lib/auth/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+
+const ALLOWED_ADMIN_ROLES = ['superadmin', 'manager', 'viewer'] as const;
 
 const PUBLIC_PATHS = [
   '/login',
@@ -25,7 +26,38 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get access token from httpOnly cookie or Authorization header
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+        },
+        remove(name: string, options: CookieOptions) {
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+        },
+      },
+    }
+  );
+
   const accessToken =
     request.cookies.get('sb-access-token')?.value ??
     (request.headers.get('authorization')?.startsWith('Bearer ')
@@ -34,94 +66,84 @@ export async function middleware(request: NextRequest) {
 
   const refreshToken = request.cookies.get('sb-refresh-token')?.value;
 
-  // If no access token, redirect to login
   if (!accessToken) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // Verify the access token
-  const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(accessToken);
+  const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
 
-  // If token is expired and we have a refresh token, try to refresh
   if (userError && refreshToken) {
     try {
-      const { data: refreshData, error: refreshError } = await supabaseAdmin.auth.refreshSession({
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession({
         refresh_token: refreshToken,
       });
 
       if (refreshError || !refreshData.session) {
-        // Refresh failed, redirect to login
-        const response = NextResponse.redirect(new URL('/login', request.url));
-        response.cookies.delete('sb-access-token');
-        response.cookies.delete('sb-refresh-token');
-        return response;
+        const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
+        redirectResponse.cookies.delete('sb-access-token');
+        redirectResponse.cookies.delete('sb-refresh-token');
+        return redirectResponse;
       }
 
-      // Refresh succeeded, verify user is admin
       const { user } = refreshData.session;
-
-      const { data: adminRecord } = await supabaseAdmin
+      const { data: adminRecord } = await supabase
         .from('admins')
         .select('id, role')
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (!adminRecord || !ALLOWED_ADMIN_ROLES.includes(adminRecord.role as any)) {
-        const response = NextResponse.redirect(new URL('/login', request.url));
-        response.cookies.delete('sb-access-token');
-        response.cookies.delete('sb-refresh-token');
-        return response;
+        const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
+        redirectResponse.cookies.delete('sb-access-token');
+        redirectResponse.cookies.delete('sb-refresh-token');
+        return redirectResponse;
       }
 
-      // Update cookies with new tokens and continue
-      const response = NextResponse.next();
       response.cookies.set('sb-access-token', refreshData.session.access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60, // 1 hour
+        maxAge: 60 * 60,
         path: '/',
       });
       response.cookies.set('sb-refresh-token', refreshData.session.refresh_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
         path: '/',
       });
       return response;
     } catch (error) {
       console.error('Token refresh error in middleware:', error);
-      const response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('sb-access-token');
-      response.cookies.delete('sb-refresh-token');
-      return response;
+      const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
+      redirectResponse.cookies.delete('sb-access-token');
+      redirectResponse.cookies.delete('sb-refresh-token');
+      return redirectResponse;
     }
   }
 
-  // If user verification failed and no refresh available, redirect to login
   if (userError || !userData.user) {
-    const response = NextResponse.redirect(new URL('/login', request.url));
-    response.cookies.delete('sb-access-token');
-    response.cookies.delete('sb-refresh-token');
-    return response;
+    const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
+    redirectResponse.cookies.delete('sb-access-token');
+    redirectResponse.cookies.delete('sb-refresh-token');
+    return redirectResponse;
   }
 
-  // Check if user is an admin with valid role
-  const { data: adminRecord } = await supabaseAdmin
+  const { data: adminRecord } = await supabase
     .from('admins')
     .select('id, role')
     .eq('user_id', userData.user.id)
     .maybeSingle();
 
   if (!adminRecord || !ALLOWED_ADMIN_ROLES.includes(adminRecord.role as any)) {
-    const response = NextResponse.redirect(new URL('/login', request.url));
-    response.cookies.delete('sb-access-token');
-    response.cookies.delete('sb-refresh-token');
-    return response;
+    const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
+    redirectResponse.cookies.delete('sb-access-token');
+    redirectResponse.cookies.delete('sb-refresh-token');
+    return redirectResponse;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
