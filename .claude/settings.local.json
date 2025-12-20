@@ -14,7 +14,11 @@
       "Bash(git remote:*)",
       "Bash(test:*)",
       "Bash(npm install)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(del vercel.json)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
